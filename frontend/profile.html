@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile</title>
+  <style>
+    body { font-family: Arial, sans-serif; }
+    .profile-container { width: 300px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+    p { margin: 10px 0; }
+    button { padding: 5px 10px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; }
+  </style>
+</head>
+<body>
+
+  <div class="profile-container">
+    <h2>Your Profile</h2>
+    <p><strong>Email:</strong> <span id="email"></span></p>
+    <p><strong>Role:</strong> <span id="role"></span></p>
+    <button onclick="logout()">Logout</button>
+  </div>
+
+  <script>
+    async function getProfile() {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        window.location.href = 'login.html'; // Если токен отсутствует, переходим на страницу входа
+        return;
+      }
+
+      const response = await fetch('http://localhost:8000/api/auth/me', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        document.getElementById('email').textContent = data.email;
+        document.getElementById('role').textContent = data.role;
+      } else {
+        alert(data.detail);
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('token');
+      window.location.href = 'login.html'; // Выход и перенаправление на страницу входа
+    }
+
+    // Загружаем данные профиля при загрузке страницы
+    getProfile();
+  </script>
+</body>
+</html>

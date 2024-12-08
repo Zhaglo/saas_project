@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  saas_frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - saas_backend
+    networks:
+      - saas_network
+
+  saas_backend:
+    build:
+      context: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://user:password@saas_db:5432/saas_db
+    depends_on:
+      - saas_db
+    networks:
+      - saas_network
+
+  saas_db:
+    image: postgres:13
+    environment:
+      - POSTGRES_USER=saas_admin
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=saas_system
+    volumes:
+      - saas_db_data:/var/lib/postgresql/data
+    networks:
+      - saas_network
+
+volumes:
+  saas_db_data:
+
+networks:
+  saas_network:
+    driver: bridge

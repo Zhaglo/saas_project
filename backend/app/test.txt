@@ -1,0 +1,70 @@
+$body = '{"user_id": 6, "plan_name": "Premium", "duration_days": 30}'
+
+$response = Invoke-WebRequest -Uri "http://127.0.0.1:8000/api/subscriptions/" `
+                              -Method Post `
+                              -Headers @{"Content-Type"="application/json"} `
+                              -Body $body
+
+$response.Content  # Печать ответа
+
+$response = Invoke-WebRequest -Uri "http://127.0.0.1:8000/api/subscriptions/6" `
+                              -Method Get `
+                              -Headers @{
+                                  "Content-Type" = "application/json"
+                                  "Authorization" = "Bearer $token"
+                              }
+
+$response.Content  # Печать ответа
+
+
+# Параметры для логина
+$email = "newuser@example.com"
+$password = "newuserpass"
+
+# Запрос на логин
+$response = Invoke-WebRequest -Uri "http://127.0.0.1:8000/api/auth/login" `
+                              -Method Post `
+                              -Headers @{ "Content-Type" = "application/json" } `
+                              -Body (@{
+                                  "email" = $email
+                                  "password" = $password
+                              } | ConvertTo-Json)
+
+# Извлечение токена из ответа и сохранение в переменную
+$token = ($response.Content | ConvertFrom-Json).access_token
+
+# Печать токена (для проверки)
+$token
+
+
+
+$cancel_data = @{
+    subscription_id = 7
+}
+
+$response = Invoke-WebRequest -Uri "http://127.0.0.1:8000/api/subscriptions/cancel_subscription" `
+    -Method Post `
+    -Headers @{
+        "Authorization" = "Bearer $token"
+        "Content-Type" = "application/json"
+    } `
+    -Body ($cancel_data | ConvertTo-Json)
+
+$response.Content  # Печать ответа
+
+
+
+
+$email = "admin@example.com"
+$password = "adminpassword"
+
+$response = Invoke-WebRequest -Uri "http://127.0.0.1:8000/api/auth/login" `
+                              -Method Post `
+                              -Headers @{ "Content-Type" = "application/json" } `
+                              -Body (@{
+                                  "email" = $email
+                                  "password" = $password
+                              } | ConvertTo-Json)
+
+# Извлечение токена из ответа и сохранение в переменную
+$token = ($response.Content | ConvertFrom-Json).access_token

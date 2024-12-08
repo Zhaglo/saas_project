@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Subscriptions</title>
+  <style>
+    body { font-family: Arial, sans-serif; }
+    .subscription { margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+    button { padding: 5px 10px; background-color: #f44336; color: white; border: none; border-radius: 5px; }
+  </style>
+</head>
+<body>
+
+  <h2>Your Subscriptions</h2>
+  <div id="subscriptions-list"></div>
+
+  <script>
+    async function getSubscriptions() {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        window.location.href = 'login.html'; // Если токен отсутствует, переходим на страницу входа
+        return;
+      }
+
+      const response = await fetch('http://127.0.0.1:8000/api/subscriptions', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        const subscriptionsList = document.getElementById('subscriptions-list');
+        subscriptionsList.innerHTML = ''; // Очистить текущие подписки
+
+        data.forEach(sub => {
+          const subDiv = document.createElement('div');
+          subDiv.classList.add('subscription');
+          subDiv.innerHTML = `
+            <p>Subscription ID: ${sub.id}</p>
+            <p>Status: ${sub.status}</p>
+            <button onclick="cancelSubscription(${sub.id})">Cancel</button>
+          `;
+          subscriptionsList.appendChild(subDiv);
+        });
+      } else {
+        alert(data.detail);
+      }
+    }
+
+    async function cancelSubscription(subscriptionId) {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:8000/api/subscriptions/cancel_subscription', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ subscription_id: subscriptionId })
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        alert('Subscription canceled successfully');
+        getSubscriptions(); // Перезагружаем список подписок
+      } else {
+        alert(data.detail);
+      }
+    }
+
+    // Загружаем подписки при загрузке страницы
+    getSubscriptions();
+  </script>
+</body>
+</html>

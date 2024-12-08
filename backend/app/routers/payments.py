@@ -7,20 +7,6 @@ import random
 
 router = APIRouter()
 
-# Хранилище платежей
-# payments = [
-#     {"payment_id": 1, "user_id": 1, "plan_name": "Premium", "amount": 1000, "status": "confirmed", "subscription_id": 1},
-#     {"payment_id": 2, "user_id": 2, "plan_name": "Basic", "amount": 500, "status": "pending", "subscription_id": 2},
-#     {"payment_id": 123456, "user_id": 3, "plan_name": "Standard", "amount": 1500, "status": "pending", "subscription_id": 3}  # Добавлен тестовый платёж
-# ]
-#
-# # Пример фейковых подписок
-# subscriptions = [
-#     {"id": 1, "user_id": 1, "plan_name": "Premium", "status": "active"},
-#     {"id": 2, "user_id": 2, "plan_name": "Basic", "status": "inactive"},
-#     {"id": 3, "user_id": 3, "plan_name": "Standard", "status": "inactive"}
-# ]
-
 class PaymentRequest(BaseModel):
     user_id: int
     plan_name: str

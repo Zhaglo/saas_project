@@ -1,6 +1,8 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, Date
 from sqlalchemy.orm import relationship
+from datetime import date
 from app.database import Base
+from pydantic import BaseModel
 
 class Payment(Base):
     __tablename__ = "payments"
@@ -23,6 +25,7 @@ class User(Base):
     username = Column(String, unique=True, index=True)
     email = Column(String, unique=True, index=True)
     password_hash = Column(String)
+    role = Column(String, default="user")
 
     # Связь с платежами и подписками
     payments = relationship("Payment", back_populates="user")
@@ -34,10 +37,24 @@ class Subscription(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     plan_name = Column(String)
-    start_date = Column(String)
-    end_date = Column(String)
+    start_date = Column(Date)
+    end_date = Column(Date)
     status = Column(String, default="active")
 
     # Связь с пользователем и платежами
     user = relationship("User", back_populates="subscriptions")
-    payments = relationship("Payment", back_populates="subscription")
+    payments = relationship("Payment", back_populates="subscription")  # Изменение: payments = relationship
+
+class SubscriptionCancelRequest(BaseModel):
+    subscription_id: int  # Идентификатор подписки, которую нужно отменить
+
+class SubscriptionResponse(BaseModel):
+    id: int
+    user_id: int
+    plan_name: str
+    start_date: date
+    end_date: date
+    status: str
+
+    class Config:
+        from_attributes = True  # Это нужно, чтобы Pydantic понимал объекты SQLAlchemy

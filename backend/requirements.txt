@@ -1,0 +1,12 @@
+fastapi==0.106.0
+uvicorn==0.22.0
+asyncpg==0.27.0
+sqlalchemy==1.4.42
+databases==0.7.0
+pytest==7.4.0
+pytest-asyncio==0.21.0
+httpx==0.24.0
+python-jose==3.3.0
+passlib[bcrypt]==1.7.4
+pydantic>=2.5.2
+psycopg2-binary
