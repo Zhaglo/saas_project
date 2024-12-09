@@ -87,7 +87,7 @@ def login_user(user: UserLogin, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     access_token = create_access_token(data={"sub": db_user.username, "role": db_user.role})
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {"access_token": access_token, "token_type": "bearer", "user_id": db_user.id}
 
 @router.get("/me/")
 def get_current_user_info(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):

@@ -6,72 +6,99 @@
   <title>Subscriptions</title>
   <style>
     body { font-family: Arial, sans-serif; }
-    .subscription { margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
-    button { padding: 5px 10px; background-color: #f44336; color: white; border: none; border-radius: 5px; }
+    .plans-container { display: flex; flex-wrap: wrap; gap: 20px; }
+    .plan { border: 1px solid #ddd; border-radius: 5px; padding: 20px; width: 200px; }
+    .plan h3 { margin: 0 0 10px; }
+    .plan button { padding: 10px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; }
   </style>
 </head>
 <body>
-
-  <h2>Your Subscriptions</h2>
-  <div id="subscriptions-list"></div>
+  <h2>Choose a Subscription Plan</h2>
+  <div id="plans-container" class="plans-container"></div>
 
   <script>
-    async function getSubscriptions() {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        window.location.href = 'login.html'; // Если токен отсутствует, переходим на страницу входа
+    async function fetchPlans() {
+      const response = await fetch('http://localhost:8000/api/subscriptions/plans');
+      const data = await response.json();
+      const container = document.getElementById('plans-container');
+      container.innerHTML = ''; // Очищаем контейнер
+
+      data.plans.forEach(plan => {
+        const planDiv = document.createElement('div');
+        planDiv.className = 'plan';
+        planDiv.innerHTML = `
+          <h3>${plan.name}</h3>
+          <p>Price: $${plan.price}</p>
+          <p>Duration: ${plan.duration_days} days</p>
+          <button onclick="subscribe(${plan.id}, '${plan.name}', ${plan.price}, ${plan.duration_days})">Subscribe</button>
+        `;
+        container.appendChild(planDiv);
+      });
+    }
+
+    async function subscribe(planId, planName, planPrice, durationDays) {
+      const userId = localStorage.getItem('user_id'); // Храните ID пользователя после входа
+      if (!userId) {
+        alert('Please log in first!');
         return;
       }
 
-      const response = await fetch('http://127.0.0.1:8000/api/subscriptions', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        }
-      });
-
-      const data = await response.json();
-      if (response.ok) {
-        const subscriptionsList = document.getElementById('subscriptions-list');
-        subscriptionsList.innerHTML = ''; // Очистить текущие подписки
-
-        data.forEach(sub => {
-          const subDiv = document.createElement('div');
-          subDiv.classList.add('subscription');
-          subDiv.innerHTML = `
-            <p>Subscription ID: ${sub.id}</p>
-            <p>Status: ${sub.status}</p>
-            <button onclick="cancelSubscription(${sub.id})">Cancel</button>
-          `;
-          subscriptionsList.appendChild(subDiv);
+      try {
+        // Создаем подписку
+        const subscriptionResponse = await fetch('http://localhost:8000/api/subscriptions/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+          body: JSON.stringify({
+            plan_name: planName,
+            duration_days: durationDays, // Передаём продолжительность подписки
+          }),
         });
-      } else {
-        alert(data.detail);
+
+        if (!subscriptionResponse.ok) {
+          const error = await subscriptionResponse.json();
+          alert(`Failed to create subscription: ${error.detail}`);
+          return;
+        }
+
+        const subscriptionData = await subscriptionResponse.json();
+        console.log(subscriptionData);
+        const subscriptionId = subscriptionData.subscription.id;
+
+        // Создаем платеж
+        const paymentResponse = await fetch('http://localhost:8000/api/payments/create-checkout-session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            plan_name: planName,
+            amount: planPrice * 100, // Сумма в центах
+            subscription_id: subscriptionId, // Передаём ID подписки
+          }),
+        });
+
+        if (!paymentResponse.ok) {
+          const error = await paymentResponse.json();
+          alert(`Failed to create payment: ${error.detail}`);
+          return;
+        }
+
+        const paymentData = await paymentResponse.json();
+        alert(`Payment created! Please proceed to: ${paymentData.url}`);
+        window.location.href = paymentData.url; // Перенаправляем на страницу платежа
+
+      } catch (err) {
+        console.error('Error during subscription process:', err);
+        alert('Something went wrong. Please try again.');
       }
     }
 
-    async function cancelSubscription(subscriptionId) {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/subscriptions/cancel_subscription', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ subscription_id: subscriptionId })
-      });
-
-      const data = await response.json();
-      if (response.ok) {
-        alert('Subscription canceled successfully');
-        getSubscriptions(); // Перезагружаем список подписок
-      } else {
-        alert(data.detail);
-      }
-    }
-
-    // Загружаем подписки при загрузке страницы
-    getSubscriptions();
+    fetchPlans();
   </script>
 </body>
 </html>

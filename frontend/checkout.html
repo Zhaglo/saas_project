@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fake Payment Page</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+    .form-container { width: 300px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+    input { width: 100%; padding: 10px; margin: 5px 0; }
+    button { width: 100%; padding: 10px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; }
+    .success { color: green; margin-top: 20px; }
+    .error { color: red; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h2>Fake Payment Provider</h2>
+  <div class="form-container">
+    <h3>Enter Payment Details</h3>
+    <input type="text" id="card-number" placeholder="Card Number" required />
+    <input type="text" id="expiry-date" placeholder="Expiry Date (MM/YY)" required />
+    <input type="text" id="cvv" placeholder="CVV" required />
+    <button onclick="processPayment()">Pay</button>
+    <p id="status" class="success" style="display: none;">Payment successful!</p>
+    <p id="status-error" class="error" style="display: none;">Payment failed!</p>
+  </div>
+
+  <script>
+    function processPayment() {
+      const cardNumber = document.getElementById('card-number').value;
+      const expiryDate = document.getElementById('expiry-date').value;
+      const cvv = document.getElementById('cvv').value;
+
+      // Простейшая имитация проверки данных
+      if (cardNumber && expiryDate && cvv) {
+        // Показываем успешное сообщение
+        document.getElementById('status').style.display = 'block';
+        document.getElementById('status-error').style.display = 'none';
+
+        // Перенаправление на фейковую страницу успешной оплаты
+        const urlParams = new URLSearchParams(window.location.search);
+        const paymentId = urlParams.get('payment_id');
+
+        if (paymentId) {
+          setTimeout(() => {
+            window.location.href = `payment-success.html?payment_id=${paymentId}`;
+          }, 2000);
+        } else {
+          console.error("Payment ID not found!");
+        }
+      } else {
+        // Показываем сообщение об ошибке
+        document.getElementById('status-error').style.display = 'block';
+        document.getElementById('status').style.display = 'none';
+      }
+    }
+  </script>
+</body>
+</html>

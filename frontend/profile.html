@@ -6,51 +6,171 @@
   <title>Profile</title>
   <style>
     body { font-family: Arial, sans-serif; }
-    .profile-container { width: 300px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
-    p { margin: 10px 0; }
-    button { padding: 5px 10px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; }
+    h2 { text-align: center; margin-top: 20px; }
+    .container { margin: 20px; }
+    .section { margin-bottom: 40px; }
+    .plans-container, .subscriptions-container { display: flex; flex-wrap: wrap; gap: 20px; }
+    .card { border: 1px solid #ddd; border-radius: 5px; padding: 20px; width: 200px; }
+    .card h3 { margin: 0 0 10px; }
+    .card button { padding: 10px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; }
+    .expired { color: gray; }
   </style>
 </head>
 <body>
+  <h2>Your Profile</h2>
+  <div class="container">
 
-  <div class="profile-container">
-    <h2>Your Profile</h2>
-    <p><strong>Email:</strong> <span id="email"></span></p>
-    <p><strong>Role:</strong> <span id="role"></span></p>
-    <button onclick="logout()">Logout</button>
+    <!-- Активные подписки -->
+    <div class="section">
+      <h3>Active Subscriptions</h3>
+      <div id="active-subscriptions" class="subscriptions-container"></div>
+    </div>
+
+    <!-- Истекшие подписки -->
+    <div class="section">
+      <h3>Expired Subscriptions</h3>
+      <div id="expired-subscriptions" class="subscriptions-container"></div>
+    </div>
+
+    <!-- Доступные планы -->
+    <div class="section">
+      <h3>Available Plans</h3>
+      <div id="plans-container" class="plans-container"></div>
+    </div>
   </div>
 
   <script>
-    async function getProfile() {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        window.location.href = 'login.html'; // Если токен отсутствует, переходим на страницу входа
-        return;
-      }
+    const token = localStorage.getItem('token');
+    if (!token) {
+      window.location.href = 'login.html'; // Если токен отсутствует, перенаправляем на вход
+    }
 
-      const response = await fetch('http://localhost:8000/api/auth/me', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        }
+    // Получение активных подписок
+    async function fetchActiveSubscriptions() {
+      const response = await fetch('http://localhost:8000/api/subscriptions/active', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
-
       const data = await response.json();
-      if (response.ok) {
-        document.getElementById('email').textContent = data.email;
-        document.getElementById('role').textContent = data.role;
+      const container = document.getElementById('active-subscriptions');
+      container.innerHTML = '';
+
+      if (response.ok && data.subscriptions) {
+        data.subscriptions.forEach(sub => {
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.innerHTML = `
+            <h3>${sub.plan_name}</h3>
+            <p>Start: ${new Date(sub.start_date).toLocaleDateString()}</p>
+            <p>End: ${new Date(sub.end_date).toLocaleDateString()}</p>
+          `;
+          container.appendChild(card);
+        });
       } else {
-        alert(data.detail);
+        container.innerHTML = '<p>No active subscriptions found.</p>';
       }
     }
 
-    function logout() {
-      localStorage.removeItem('token');
-      window.location.href = 'login.html'; // Выход и перенаправление на страницу входа
+    // Получение истекших подписок
+    async function fetchExpiredSubscriptions() {
+      const response = await fetch('http://localhost:8000/api/subscriptions/expired', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      const data = await response.json();
+      const container = document.getElementById('expired-subscriptions');
+      container.innerHTML = '';
+
+      if (response.ok && data.expired_subscriptions) {
+        data.expired_subscriptions.forEach(sub => {
+          const card = document.createElement('div');
+          card.className = 'card expired';
+          card.innerHTML = `
+            <h3>${sub.plan_name}</h3>
+            <p>Start: ${new Date(sub.start_date).toLocaleDateString()}</p>
+            <p>End: ${new Date(sub.end_date).toLocaleDateString()}</p>
+          `;
+          container.appendChild(card);
+        });
+      } else {
+        container.innerHTML = '<p>No expired subscriptions found.</p>';
+      }
     }
 
-    // Загружаем данные профиля при загрузке страницы
-    getProfile();
+
+    // Получение доступных планов подписки
+    async function fetchPlans() {
+      const response = await fetch('http://localhost:8000/api/subscriptions/plans');
+      const data = await response.json();
+      const container = document.getElementById('plans-container');
+      container.innerHTML = '';
+
+      data.plans.forEach(plan => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <h3>${plan.name}</h3>
+          <p>Price: $${plan.price}</p>
+          <p>Duration: ${plan.duration_days} days</p>
+          <button onclick="subscribe('${plan.name}', ${plan.price}, ${plan.duration_days})">Subscribe</button>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // Подписка на план
+    async function subscribe(planName, planPrice, durationDays) {
+      try {
+        const response = await fetch('http://localhost:8000/api/subscriptions/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ plan_name: planName, duration_days: durationDays }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          alert(`Failed to subscribe: ${error.detail}`);
+          return;
+        }
+
+        const subscriptionData = await response.json();
+        const subscriptionId = subscriptionData.subscription.id;
+
+        // Создаем платеж
+        const paymentResponse = await fetch('http://localhost:8000/api/payments/create-checkout-session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            user_id: localStorage.getItem('user_id'),
+            plan_name: planName,
+            amount: planPrice * 100,
+            subscription_id: subscriptionId,
+          }),
+        });
+
+        if (!paymentResponse.ok) {
+          const error = await paymentResponse.json();
+          alert(`Failed to create payment: ${error.detail}`);
+          return;
+        }
+
+        const paymentData = await paymentResponse.json();
+        alert(`Payment created! Redirecting to: ${paymentData.url}`);
+        window.location.href = paymentData.url;
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Something went wrong. Please try again.');
+      }
+    }
+
+    // Загружаем данные при загрузке страницы
+    fetchActiveSubscriptions();
+    fetchExpiredSubscriptions();
+    fetchPlans();
   </script>
 </body>
 </html>

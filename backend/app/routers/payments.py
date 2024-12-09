@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -11,6 +13,7 @@ class PaymentRequest(BaseModel):
     user_id: int
     plan_name: str
     amount: int  # Сумма в центах
+    subscription_id: int
 
 class PaymentRecord(BaseModel):
     payment_id: int
@@ -40,17 +43,27 @@ def list_all_payments(db: Session = Depends(get_db)):
 
 @router.post("/create-checkout-session")
 def create_checkout_session(payment: PaymentRequest, db: Session = Depends(get_db)):  # Исправлено
+    # Логируем входящие данные
+    print(
+        f"Received payment request: user_id={payment.user_id}, plan_name={payment.plan_name}, amount={payment.amount}"
+    )
+
     # Проверяем корректность суммы
     if payment.amount <= 0:
         raise HTTPException(status_code=400, detail="Invalid payment amount")
 
     # Привязка к подписке
-    subscription_id = db.query(Subscription.id).filter(
+    subscription = db.query(Subscription).filter(
         Subscription.user_id == payment.user_id,
         Subscription.plan_name == payment.plan_name
     ).first()
-    if not subscription_id:
+
+    if not subscription:
         raise HTTPException(status_code=404, detail="Subscription not found")
+
+    subscription_id = subscription.id  # Получаем ID подписки
+
+    print(f"Found subscription_id: {subscription_id}")
 
     # Генерация платежа
     payment_id = random.randint(100000, 999999)
@@ -60,13 +73,21 @@ def create_checkout_session(payment: PaymentRequest, db: Session = Depends(get_d
         plan_name=payment.plan_name,
         amount=payment.amount,
         status="pending",
-        subscription_id=subscription_id[0]  # Используем ID подписки
+        subscription_id=subscription_id  # Используем ID подписки
     )
-    db.add(new_payment)
-    db.commit()
+
+    try:
+        db.add(new_payment)
+        db.commit()
+        db.refresh(new_payment)  # Обновляем объект из базы
+    except Exception as e:
+        db.rollback()
+        print(f"Error creating payment: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create payment")
 
     # Генерация фейкового URL
-    fake_url = f"https://fake-payment-provider.com/checkout/{payment_id}"
+    fake_url = f"http://localhost:3000/checkout.html?payment_id={payment_id}"
+    print(f"Payment created successfully. Redirect URL: {fake_url}")
     return {"url": fake_url, "payment_id": payment_id}
 
 @router.post("/confirm-payment")
@@ -87,6 +108,11 @@ def confirm_payment(request: ConfirmPaymentRequest, db: Session = Depends(get_db
     subscription = db.query(Subscription).filter(Subscription.id == payment.subscription_id).first()
     if subscription:
         subscription.status = "active"
+        if subscription.end_date < datetime.utcnow().date():
+            subscription.end_date = datetime.utcnow() + timedelta(days=30)
         db.commit()
+        print(f"Payment {request.payment_id} confirmed. Subscription {subscription.id} activated.")
+    else:
+        print(f"No subscription found for payment {request.payment_id}")
 
-    return {"message": "Payment confirmed successfully", "payment_id": payment.id}
+    return {"message": "Payment confirmed and subscription activated"}

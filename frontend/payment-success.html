@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Success</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+    .success { color: green; font-size: 24px; }
+    .error { color: red; font-size: 24px; }
+    button { padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h2 id="message" class="success">Payment Successful!</h2>
+  <p>Your subscription has been activated.</p>
+  <button id="redirect-button" onclick="redirect()">Go to Subscriptions</button>
+
+  <script>
+    async function confirmPayment() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const paymentId = urlParams.get('payment_id');
+
+      if (!paymentId) {
+        console.error("Payment ID not found in URL");
+        return;
+      }
+
+      try {
+        const response = await fetch('http://localhost:8000/api/payments/confirm-payment', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ payment_id: parseInt(paymentId) }), // Добавлено преобразование в число
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error(`Error confirming payment: ${errorData.detail}`);
+          document.getElementById('message').innerText = "Error confirming payment!";
+          document.getElementById('message').className = "error";
+        } else {
+          const data = await response.json();
+          console.log("Payment confirmed successfully:", data);
+        }
+      } catch (error) {
+        console.error("Error confirming payment:", error);
+        document.getElementById('message').innerText = "Error confirming payment!";
+        document.getElementById('message').className = "error";
+      }
+    }
+
+    function redirect() {
+      window.location.href = 'profile.html'; // Возврат на страницу подписок
+    }
+
+    confirmPayment(); // Запускаем функцию подтверждения платежа
+  </script>
+</body>
+</html>
