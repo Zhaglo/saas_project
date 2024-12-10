@@ -96,7 +96,11 @@
         if (response.ok) {
           localStorage.setItem('token', data.access_token);
           localStorage.setItem('user_id', data.user_id);
-          window.location.href = 'profile.html';
+          if (data.role === 'admin') {
+            window.location.href = 'admin.html';
+          } else {
+            window.location.href = 'profile.html';
+          }
         } else {
           passwordInput.value = ''; // Сброс пароля
           passwordError.textContent = 'Неверный пароль.';

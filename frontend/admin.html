@@ -74,11 +74,20 @@
           subscriptionsList.appendChild(noDataItem);
         } else {
           data.subscriptions.forEach((sub) => {
-            const li = document.createElement('li');
-            li.className = 'list-group-item';
-            li.textContent = `${sub.plan_name} (${sub.status}) - ${new Date(sub.start_date).toLocaleDateString()} to ${new Date(sub.end_date).toLocaleDateString()}`;
-            subscriptionsList.appendChild(li);
-          });
+          const li = document.createElement('li');
+          li.className = 'list-group-item d-flex justify-content-between align-items-center';
+          li.textContent = `${sub.plan_name} (${sub.status}) - ${new Date(sub.start_date).toLocaleDateString()} to ${new Date(sub.end_date).toLocaleDateString()}`;
+
+          if (sub.status === "active") {
+            const cancelButton = document.createElement('button');
+            cancelButton.className = 'btn btn-danger btn-sm';
+            cancelButton.textContent = 'Cancel';
+            cancelButton.onclick = () => cancelSubscription(userId, sub.id);
+            li.appendChild(cancelButton);
+          }
+
+          subscriptionsList.appendChild(li);
+        });
         }
 
         document.getElementById('users-section').classList.add('d-none');
@@ -86,6 +95,33 @@
       } catch (error) {
         console.error('Error fetching subscriptions:', error);
         alert('Failed to load subscriptions. Please try again later.');
+      }
+    }
+
+    async function cancelSubscription(userId, subscriptionId) {
+      if (!confirm("Are you sure you want to cancel this subscription?")) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`http://localhost:8000/api/auth/users/${userId}/subscriptions/cancel`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ subscription_id: subscriptionId }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to cancel subscription.');
+        }
+
+        alert('Subscription cancelled successfully.');
+        fetchSubscriptions(userId); // Обновляем список подписок
+      } catch (error) {
+        console.error('Error cancelling subscription:', error);
+        alert('Failed to cancel subscription. Please try again later.');
       }
     }
 

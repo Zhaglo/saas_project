@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from app.database import get_db
-from app.models import User, Subscription
+from app.models import User, Subscription, SubscriptionCancelRequest
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from jose import jwt
@@ -87,7 +87,7 @@ def login_user(user: UserLogin, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     access_token = create_access_token(data={"sub": db_user.username, "role": db_user.role})
-    return {"access_token": access_token, "token_type": "bearer", "user_id": db_user.id}
+    return {"access_token": access_token, "token_type": "bearer", "user_id": db_user.id, "role": db_user.role}
 
 @router.get("/me/")
 def get_current_user_info(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
@@ -100,6 +100,39 @@ def get_current_user_info(db: Session = Depends(get_db), token: str = Depends(oa
 @router.get("/admin-only/")
 def admin_only(token: str = Depends(role_required("admin"))):
     return {"message": "You are an admin!"}
+
+@router.post("/users/{user_id}/subscriptions/cancel")
+async def cancel_user_subscription(
+    user_id: int,
+    request: SubscriptionCancelRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+
+    subscription_id = request.subscription_id
+
+    # Проверка роли текущего пользователя
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="You don't have permission to access this resource")
+
+    # Проверка существования подписки
+    subscription = db.query(Subscription).filter(
+        Subscription.id == subscription_id,
+        Subscription.user_id == user_id
+    ).first()
+
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+
+    # Проверка статуса подписки
+    if subscription.status != "active":
+        raise HTTPException(status_code=400, detail="Only active subscriptions can be cancelled")
+
+    # Отмена подписки
+    subscription.status = "cancelled"
+    db.commit()
+
+    return {"message": f"Subscription {subscription_id} cancelled successfully"}
 
 # Эндпоинт для получения подписок пользователя (доступен только администраторам)
 @router.get("/users/{user_id}/subscriptions")
