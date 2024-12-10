@@ -9,14 +9,14 @@
 <body class="bg-light">
   <div class="container text-center vh-100 d-flex justify-content-center align-items-center">
     <div class="card p-5 shadow-sm" style="width: 400px;">
-      <h2>Fake Payment Provider</h2>
-      <p>Enter Payment Details</p>
-      <input type="text" id="card-number" class="form-control mb-3" placeholder="Card Number" maxlength="19" required>
-      <input type="text" id="expiry-date" class="form-control mb-3" placeholder="Expiry Date (MM/YY)" maxlength="5" required>
+      <h2>Фейковый платежный провайдер</h2>
+      <p>Введите платежные реквизиты</p>
+      <input type="text" id="card-number" class="form-control mb-3" placeholder="Номер карты" maxlength="19" required>
+      <input type="text" id="expiry-date" class="form-control mb-3" placeholder="Срок действия (ММ/ГГ)" maxlength="5" required>
       <input type="password" id="cvv" class="form-control mb-3" placeholder="CVV" maxlength="3" required>
-      <button class="btn btn-primary w-100" onclick="processPayment()">Pay</button>
-      <p id="status" class="text-success mt-3 d-none">Payment successful!</p>
-      <p id="status-error" class="text-danger mt-3 d-none">Payment failed!</p>
+      <button class="btn btn-primary w-100" onclick="processPayment()">Оплатить</button>
+      <p id="status" class="text-success mt-3 d-none">Платеж прошел успешно!</p>
+      <p id="status-error" class="text-danger mt-3 d-none">Платеж не состоялся!</p>
     </div>
   </div>
 

@@ -257,7 +257,6 @@
         console.log('Подписка успешно создана:', data);
 
         if (data.payment_url) {
-          alert('Подписка создана! Перенаправление на оплату...');
           window.location.href = data.payment_url;
         } else {
           alert('Подписка успешно создана без оплаты. Проверьте свои активные подписки.');
