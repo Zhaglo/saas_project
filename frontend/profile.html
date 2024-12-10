@@ -6,47 +6,104 @@
   <title>Profile</title>
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Roboto', sans-serif;
       background-color: #f8f9fa;
+    }
+    .navbar-brand {
+      font-weight: 700;
     }
     .card {
       border-radius: 10px;
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s, box-shadow 0.2s;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       height: 100%;
     }
-
+    #active-subscriptions,
+    #expired-subscriptions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px; /* Оптимальный отступ между карточками */
+      justify-content: flex-start; /* Прижимаем карточки к левому краю */
+      align-items: flex-start; /* Выравниваем карточки по верхнему краю */
+    }
+    #active-subscriptions .card,
+    #expired-subscriptions .card {
+      width: 250px; /* Задаём фиксированную ширину карточек */
+      flex: 0 0 auto; /* Отключаем растягивание карточек */
+      height: auto; /* Высота по содержимому */
+      margin: 0; /* Убираем лишние отступы */
+    }
+    .card:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
     .card-body {
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
+      align-items: flex-start;
+      justify-content: flex-start;
     }
-
+    #active-subscriptions .card-body {
+      text-align: left; /* Выравнивание текста внутри карточки */
+      padding: 15px;
+    }
     .card-title {
-      min-height: 40px; /* Установить минимальную высоту для заголовков */
+      min-height: 40px;
       margin-bottom: 10px;
     }
-
     .card-text {
-      flex-grow: 1; /* Заставить текст занимать доступное пространство */
-      min-height: 60px; /* Установить минимальную высоту для текстового описания */
+      margin-bottom: 8px; /* Уменьшаем отступ между строками */
+      line-height: 1.4; /* Добавляем плотность текста */
     }
-    .back-button {
-      margin-bottom: 20px;
+    .spinner-container {
+      text-align: center;
+      padding: 20px;
+      display: none;
     }
   </style>
 </head>
 <body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">SaaS Platforms Manager</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item">
+            <a class="nav-link active" aria-current="page" href="profile.html">Профиль</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="logout.html">Выход</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
   <div class="container py-4">
-    <h2 class="text-center mb-4">Ваш профиль</h2>
+<!--    <h2 class="text-center mb-4">Ваш профиль</h2>-->
+
+    <!-- Loading Spinner -->
+    <div id="loading" class="spinner-container">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>
 
     <!-- SaaS Platforms Section -->
     <div id="platforms-section" class="d-none">
-      <button class="btn btn-secondary back-button" onclick="showPlatforms()">← Назад к Платформам</button>
+      <button class="btn btn-secondary back-button" onclick="showPlatforms()">← Назад к платформам</button>
       <div id="platform-details" class="row gy-4"></div>
     </div>
 
@@ -57,31 +114,15 @@
     </div>
 
     <!-- Active Subscriptions Section -->
-    <div class="mt-5" style="display: none;">
+    <div id="active-subscriptions-section" class="mt-5" style="display: none;">
       <h3>Активные подписки</h3>
-      <div id="active-subscriptions" class="row gy-4"></div>
+      <div id="active-subscriptions" class="d-flex flex-wrap align-items-start gap-2"></div>
     </div>
 
     <!-- Expired Subscriptions Section -->
-    <div class="mt-5" style="display: none;">
+    <div class="mt-5" id="expired-subscriptions-section" style="display: none;">
       <h3>Истёкшие подписки</h3>
-      <div id="expired-subscriptions" class="row gy-4"></div>
-    </div>
-
-
-    <!-- Modal for Subscription Plans -->
-    <div class="modal fade" id="plansModal" tabindex="-1" aria-labelledby="plansModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="plansModalLabel">Subscription Plans</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <div id="plans-container" class="row gy-4"></div>
-          </div>
-        </div>
-      </div>
+      <div id="expired-subscriptions" class="d-flex flex-wrap align-items-start" style="gap: 8px;"></div>
     </div>
   </div>
 
@@ -91,14 +132,32 @@
     const token = localStorage.getItem('token');
 
     if (!token) {
-      window.location.href = 'login.html'; // Redirect to login if token is missing
+      window.location.href = 'login.html';
+    }
+
+    // Show Loading Spinner
+    function showLoading() {
+      document.getElementById('loading').style.display = 'block';
+    }
+
+    // Hide Loading Spinner
+    function hideLoading() {
+      document.getElementById('loading').style.display = 'none';
+    }
+
+    // Show platforms list
+    function showPlatforms() {
+      document.getElementById('platforms-list').classList.remove('d-none');
+      document.getElementById('platforms-section').classList.add('d-none');
     }
 
     // Fetch and display SaaS platforms
     async function fetchPlatforms() {
+      showLoading();
       const response = await fetch('http://localhost:8000/api/subscriptions/platforms', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      hideLoading();
       const data = await response.json();
       const container = document.getElementById('platforms-container');
       container.innerHTML = '';
@@ -122,12 +181,19 @@
 
     // Show platform details
     async function viewPlatformDetails(platformId) {
+      showLoading();
       const response = await fetch(`http://localhost:8000/api/subscriptions/platforms/${platformId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      hideLoading();
+
+      if (!response.ok) {
+        alert('Не удалось загрузить планы. Попробуйте позже.');
+        return;
+      }
+
       const data = await response.json();
       const container = document.getElementById('platform-details');
-
       const currentSubscription = data.current_subscription;
 
       container.innerHTML = `
@@ -136,25 +202,26 @@
           <p>${data.platform.description}</p>
         </div>
         ${data.plans.map(plan => {
-        const isActive = currentSubscription && currentSubscription.plan_name === plan.name;
-        return `
-          <div class="col-md-4">
-            <div class="card p-3">
-              <h5>${plan.name}</h5>
-              <p>Цена: ${plan.price}₽</p>
-              <p>Длительность: ${plan.duration_days} дней</p>
-              <p>${plan.description}</p>
-              <button
-                class="btn ${isActive ? 'btn-secondary' : 'btn-primary'}"
-                onclick="${isActive ? '' : `subscribeToPlatform(${platformId}, '${plan.name}', ${plan.duration_days})`}"
-                ${isActive ? 'disabled' : ''}>
-                ${isActive ? 'Текущий план' : (currentSubscription ? 'Сменить план' : 'Подписаться')}
-              </button>
+          const isActive = currentSubscription && currentSubscription.plan_name === plan.name;
+          return `
+            <div class="col-md-4">
+              <div class="card p-3">
+                <h5>${plan.name}</h5>
+                <p>Цена: ${plan.price}₽</p>
+                <p>Длительность: ${plan.duration_days} дней</p>
+                <p>${plan.description}</p>
+                <button
+                  class="btn ${isActive ? 'btn-secondary' : 'btn-primary'}"
+                  onclick="${isActive ? '' : `subscribeToPlatform(${platformId}, '${plan.name}', ${plan.duration_days})`}"
+                  ${isActive ? 'disabled' : ''}>
+                  ${isActive ? 'Текущий план' : (currentSubscription ? 'Сменить план' : 'Подписаться')}
+                </button>
+              </div>
             </div>
-          </div>
-        `;
+          `;
         }).join('')}
       `;
+
       document.getElementById('platforms-list').classList.add('d-none');
       document.getElementById('platforms-section').classList.remove('d-none');
     }
@@ -162,10 +229,10 @@
     // Subscribe to platform
     async function subscribeToPlatform(platformId, planName, durationDays) {
       if (!platformId || !planName || !durationDays) {
-        alert('All fields are required!');
+        alert('Все поля обязательны для заполнения!');
         return;
       }
-      console.log('Sending subscription data:', { platformId, planName, durationDays });
+      console.log('Отправка данных подписки:', { platformId, planName, durationDays });
 
       try {
         const response = await fetch(`http://localhost:8000/api/subscriptions/platforms/${platformId}/subscribe`, {
@@ -179,111 +246,94 @@
 
         if (!response.ok) {
           const error = await response.json();
-          if (Array.isArray(error.detail)) {
-            const messages = error.detail.map(err => `${err.msg}`).join('\n');
-            alert(`Error: ${messages}`);
-          } else {
-            alert(`Error: ${error.detail || 'Unknown error'}`);
-          }
+          const messages = Array.isArray(error.detail)
+            ? error.detail.map(err => `${err.msg}`).join('\n')
+            : error.detail || 'Неизвестная ошибка.';
+          alert(`Ошибка: ${messages}`);
           return;
         }
 
         const data = await response.json();
-        console.log('Subscription created:', data);
+        console.log('Подписка успешно создана:', data);
 
-        // Проверяем, есть ли URL для оплаты
         if (data.payment_url) {
-          alert('Subscription created! Redirecting to payment...');
+          alert('Подписка создана! Перенаправление на оплату...');
           window.location.href = data.payment_url;
         } else {
-          alert('Subscription created without payment. Please check your active subscriptions.');
+          alert('Подписка успешно создана без оплаты. Проверьте свои активные подписки.');
         }
 
-        fetchActiveSubscriptions(); // Обновление активных подписок
+        fetchActiveSubscriptions();
       } catch (error) {
-        console.error('Error:', error);
-        alert('An unexpected error occurred. Please try again.');
+        console.error('Ошибка подписки:', error);
+        alert('Произошла неожиданная ошибка. Попробуйте еще раз.');
       }
     }
 
-
-    // Fetch active subscriptions
-    // Fetch active subscriptions
     async function fetchActiveSubscriptions() {
       const response = await fetch('http://localhost:8000/api/subscriptions/active', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-
       const container = document.getElementById('active-subscriptions');
-      const section = container.parentElement; // Получаем родительский элемент (секцию)
-      container.innerHTML = ''; // Очищаем контейнер
+      const section = document.getElementById('active-subscriptions-section');
+      container.innerHTML = '';
 
       if (response.ok) {
         const data = await response.json();
         if (data.subscriptions.length > 0) {
-          section.style.display = 'block'; // Показываем секцию
-
+          section.style.display = 'block';
           data.subscriptions.forEach(sub => {
             const card = document.createElement('div');
-            card.className = 'col-md-4';
             card.innerHTML = `
               <div class="card p-3">
-                <h5>${sub.platform_name || 'N/A'}</h5>
-                <p>План: ${sub.plan_name}</p>
-                <p>Начало: ${new Date(sub.start_date).toLocaleDateString()}</p>
-                <p>Конец: ${new Date(sub.end_date).toLocaleDateString()}</p>
+                <div class="card-body">
+                  <h5 class="card-title">${sub.platform_name || 'N/A'}</h5>
+                  <p class="card-text">План: ${sub.plan_name}</p>
+                  <p class="card-text">Начало: ${new Date(sub.start_date).toLocaleDateString()}</p>
+                  <p class="card-text">Конец: ${new Date(sub.end_date).toLocaleDateString()}</p>
+                </div>
               </div>
             `;
             container.appendChild(card);
           });
         } else {
-          section.style.display = 'none'; // Скрываем секцию, если данных нет
+          section.style.display = 'none';
         }
-      } else {
-        console.error('Failed to fetch active subscriptions');
-        section.style.display = 'none'; // Скрываем секцию в случае ошибки
       }
     }
 
-
-    // Fetch expired subscriptions
     async function fetchExpiredSubscriptions() {
       const response = await fetch('http://localhost:8000/api/subscriptions/expired', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      const data = await response.json();
       const container = document.getElementById('expired-subscriptions');
-      const section = container.parentElement; // Получаем родительский элемент (секцию)
+      const section = document.getElementById('expired-subscriptions-section');
+      container.innerHTML = '';
 
-      container.innerHTML = ''; // Очищаем контейнер
-
-      if (response.ok && data.expired_subscriptions.length > 0) {
-        section.style.display = 'block'; // Показываем секцию
-        data.expired_subscriptions.forEach(sub => {
-          const card = document.createElement('div');
-          card.className = 'col-md-4';
-          card.innerHTML = `
-            <div class="card p-3">
-              <h5>${sub.plan_name}</h5>
-              <p>Платформа: ${sub.platform_name || 'N/A'}</p>
-              <p>Начало: ${new Date(sub.start_date).toLocaleDateString()}</p>
-              <p>Конец: ${new Date(sub.end_date).toLocaleDateString()}</p>
-            </div>
-          `;
-          container.appendChild(card);
-        });
-      } else {
-        section.style.display = 'none'; // Скрываем секцию, если данных нет
+      if (response.ok) {
+        const data = await response.json();
+        if (data.expired_subscriptions.length > 0) {
+          section.style.display = 'block';
+          data.expired_subscriptions.forEach(sub => {
+            const card = document.createElement('div');
+            card.innerHTML = `
+              <div class="card p-3">
+                <div class="card-body">
+                  <h5 class="card-title">${sub.platform_name || 'N/A'}</h5>
+                  <p class="card-text">План: ${sub.plan_name}</p>
+                  <p class="card-text">Начало: ${new Date(sub.start_date).toLocaleDateString()}</p>
+                  <p class="card-text">Конец: ${new Date(sub.end_date).toLocaleDateString()}</p>
+                </div>
+              </div>
+            `;
+            container.appendChild(card);
+          });
+        } else {
+          section.style.display = 'none';
+        }
       }
     }
 
-    // Show platforms list
-    function showPlatforms() {
-      document.getElementById('platforms-list').classList.remove('d-none');
-      document.getElementById('platforms-section').classList.add('d-none');
-    }
-
-    // Initialize
     fetchPlatforms();
     fetchActiveSubscriptions();
     fetchExpiredSubscriptions();

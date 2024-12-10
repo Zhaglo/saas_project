@@ -11,9 +11,9 @@
     <div class="card p-5 shadow-sm" style="width: 400px;">
       <h2>Fake Payment Provider</h2>
       <p>Enter Payment Details</p>
-      <input type="text" id="card-number" class="form-control mb-3" placeholder="Card Number" required>
-      <input type="text" id="expiry-date" class="form-control mb-3" placeholder="Expiry Date (MM/YY)" required>
-      <input type="text" id="cvv" class="form-control mb-3" placeholder="CVV" required>
+      <input type="text" id="card-number" class="form-control mb-3" placeholder="Card Number" maxlength="19" required>
+      <input type="text" id="expiry-date" class="form-control mb-3" placeholder="Expiry Date (MM/YY)" maxlength="5" required>
+      <input type="password" id="cvv" class="form-control mb-3" placeholder="CVV" maxlength="3" required>
       <button class="btn btn-primary w-100" onclick="processPayment()">Pay</button>
       <p id="status" class="text-success mt-3 d-none">Payment successful!</p>
       <p id="status-error" class="text-danger mt-3 d-none">Payment failed!</p>
@@ -21,29 +21,89 @@
   </div>
 
   <script>
-    function processPayment() {
-      const cardNumber = document.getElementById('card-number').value;
-      const expiryDate = document.getElementById('expiry-date').value;
-      const cvv = document.getElementById('cvv').value;
+    const cardNumberInput = document.getElementById('card-number');
+    const expiryDateInput = document.getElementById('expiry-date');
 
-      if (cardNumber && expiryDate && cvv) {
-        document.getElementById('status').classList.remove('d-none');
-        document.getElementById('status-error').classList.add('d-none');
+    // Форматирование номера карты
+    cardNumberInput.addEventListener('input', () => {
+      let value = cardNumberInput.value.replace(/\D/g, ''); // Убираем всё, кроме цифр
+      value = value.match(/.{1,4}/g)?.join(' ') || value; // Разделяем по 4 цифры
+      cardNumberInput.value = value;
+    });
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const paymentId = urlParams.get('payment_id');
-
-        if (paymentId) {
-          setTimeout(() => {
-            window.location.href = `payment-success.html?payment_id=${paymentId}`;
-          }, 2000);
-        } else {
-          console.error("Payment ID not found!");
-        }
-      } else {
-        document.getElementById('status-error').classList.remove('d-none');
-        document.getElementById('status').classList.add('d-none');
+    // Форматирование даты истечения
+    expiryDateInput.addEventListener('input', () => {
+      let value = expiryDateInput.value.replace(/\D/g, ''); // Убираем всё, кроме цифр
+      if (value.length > 2) {
+        value = `${value.slice(0, 2)}/${value.slice(2, 4)}`; // Добавляем /
       }
+      expiryDateInput.value = value;
+    });
+
+    // Обработка оплаты
+    function processPayment() {
+      const cardNumber = cardNumberInput.value.replace(/\s+/g, '').trim();
+      const expiryDate = expiryDateInput.value.trim();
+      const cvv = document.getElementById('cvv').value.trim();
+
+      if (!validateCardNumber(cardNumber)) {
+        showError("Invalid card number! Must be 16 digits.");
+        return;
+      }
+      if (!validateExpiryDate(expiryDate)) {
+        showError("Invalid expiry date! Use MM/YY format.");
+        return;
+      }
+      if (!validateCVV(cvv)) {
+        showError("Invalid CVV! Must be 3 digits.");
+        return;
+      }
+
+      document.getElementById('status').classList.remove('d-none');
+      document.getElementById('status-error').classList.add('d-none');
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const paymentId = urlParams.get('payment_id');
+
+      if (paymentId) {
+        setTimeout(() => {
+          window.location.href = `payment-success.html?payment_id=${paymentId}`;
+        }, 2000);
+      } else {
+        console.error("Payment ID not found!");
+      }
+    }
+
+    // Валидация номера карты
+    function validateCardNumber(number) {
+      const regex = /^\d{16}$/;
+      return regex.test(number);
+    }
+
+    // Валидация срока действия
+    function validateExpiryDate(date) {
+      const regex = /^(0[1-9]|1[0-2])\/\d{2}$/;
+      if (!regex.test(date)) return false;
+
+      const [month, year] = date.split('/').map(Number);
+      const now = new Date();
+      const currentYear = parseInt(now.getFullYear().toString().slice(-2), 10);
+      const currentMonth = now.getMonth() + 1;
+
+      return year > currentYear || (year === currentYear && month >= currentMonth);
+    }
+
+    // Валидация CVV
+    function validateCVV(cvv) {
+      const regex = /^\d{3}$/;
+      return regex.test(cvv);
+    }
+
+    // Показ ошибки
+    function showError(message) {
+      document.getElementById('status-error').textContent = message;
+      document.getElementById('status-error').classList.remove('d-none');
+      document.getElementById('status').classList.add('d-none');
     }
   </script>
 </body>
