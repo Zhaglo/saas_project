@@ -197,7 +197,6 @@ def get_active_subscriptions(db: Session = Depends(get_db), current_user: dict =
     return {"subscriptions": result}
 
 
-
 @router.get("/expired")
 def get_expired_subscriptions(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     update_subscription_statuses(db)
@@ -205,7 +204,20 @@ def get_expired_subscriptions(current_user: User = Depends(get_current_user), db
         Subscription.user_id == current_user.id,
         Subscription.status == "expired"
     ).all()
-    return {"expired_subscriptions": expired_subscriptions}
+
+    return {
+        "expired_subscriptions": [
+            {
+                "id": sub.id,
+                "plan_name": sub.plan_name,
+                "start_date": sub.start_date,
+                "end_date": sub.end_date,
+                "platform_name": sub.platform.name if sub.platform else None,  # Добавлено
+                "status": sub.status
+            }
+            for sub in expired_subscriptions
+        ]
+    }
 
 @router.post("/extend")
 def extend_subscription(subscription_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -238,8 +250,12 @@ def subscribe_to_platform(
         Subscription.platform_id == platform_id,
         Subscription.status == "active"
     ).first()
+
     if existing_subscription:
-        raise HTTPException(status_code=400, detail="Active subscription already exists")
+        # Меняем статус существующей подписки на 'cancelled'
+        existing_subscription.status = "cancelled"
+        db.commit()
+        logger.info(f"Subscription (ID: {existing_subscription.id}) for user {current_user.id} cancelled")
 
     # Создаем новую подписку
     start_date = datetime.utcnow()
@@ -281,16 +297,56 @@ def subscribe_to_platform(
 
 
 @router.get("/platforms/{platform_id}")
-def get_platform_details(platform_id: int, db: Session = Depends(get_db)):
+def get_platform_details(platform_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     platform = db.query(Platform).filter(Platform.id == platform_id).first()
     if not platform:
         raise HTTPException(status_code=404, detail="Platform not found")
-    plans = [
-        {"name": "Basic", "price": 10, "duration_days": 30},
-        {"name": "Pro", "price": 20, "duration_days": 60},
-        {"name": "Premium", "price": 30, "duration_days": 90},
-    ]
-    return {"platform": platform, "plans": plans}
+
+    # Получение активных подписок пользователя для этой платформы
+    current_subscription = db.query(Subscription).filter(
+        Subscription.user_id == current_user.id,
+        Subscription.platform_id == platform_id,
+        Subscription.status == "active"
+    ).first()
+
+    # Описания планов подписки
+    plans_dict = {
+        6: [
+            {"name": "Базовый", "price": 1000, "duration_days": 30, "description": "Основные функции управления облачными ресурсами.", "is_active": current_subscription and current_subscription.plan_name == "Базовый"},
+            {"name": "Профессиональный", "price": 2000, "duration_days": 30, "description": "Расширенные функции, включая автоматизацию процессов.", "is_active": current_subscription and current_subscription.plan_name == "Профессиональный"},
+            {"name": "Премиум", "price": 3000, "duration_days": 30, "description": "Все функции, приоритетная поддержка и аналитические отчеты.", "is_active": current_subscription and current_subscription.plan_name == "Премиум"},
+        ],
+        7: [
+            {"name": "Стартовый", "price": 1500, "duration_days": 30, "description": "Базовые инструменты управления продажами.", "is_active": current_subscription and current_subscription.plan_name == "Стартовый"},
+            {"name": "Продвинутый", "price": 2500, "duration_days": 30, "description": "Дополнительные функции аналитики и интеграции.", "is_active": current_subscription and current_subscription.plan_name == "Продвинутый"},
+            {"name": "Экспертный", "price": 4000, "duration_days": 30, "description": "Полный набор инструментов и персональная поддержка.", "is_active": current_subscription and current_subscription.plan_name == "Экспертный"},
+        ],
+        8: [
+            {"name": "Аналитик", "price": 2000, "duration_days": 30, "description": "Доступ к основным аналитическим данным.", "is_active": current_subscription and current_subscription.plan_name == "Аналитик"},
+            {"name": "Стратег", "price": 3500, "duration_days": 30, "description": "Расширенные данные и прогнозы.", "is_active": current_subscription and current_subscription.plan_name == "Стратег"},
+            {"name": "Гуру", "price": 5000, "duration_days": 30, "description": "Полный доступ ко всем данным и индивидуальные отчеты.", "is_active": current_subscription and current_subscription.plan_name == "Гуру"},
+        ],
+        9: [
+            {"name": "Команда", "price": 1200, "duration_days": 30, "description": "Основные функции управления проектами для небольших команд.", "is_active": current_subscription and current_subscription.plan_name == "Команда"},
+            {"name": "Бизнес", "price": 2500, "duration_days": 30, "description": "Расширенные функции для средних компаний.", "is_active": current_subscription and current_subscription.plan_name == "Бизнес"},
+            {"name": "Корпоративный", "price": 4000, "duration_days": 30, "description": "Полный функционал для крупных организаций.", "is_active": current_subscription and current_subscription.plan_name == "Корпоративный"},
+        ],
+        10: [
+            {"name": "Рекрутер", "price": 1000, "duration_days": 30, "description": "Инструменты для найма и отслеживания кандидатов.", "is_active": current_subscription and current_subscription.plan_name == "Рекрутер"},
+            {"name": "Менеджер", "price": 2000, "duration_days": 30, "description": "Дополнительные функции адаптации и обучения.", "is_active": current_subscription and current_subscription.plan_name == "Менеджер"},
+            {"name": "Директор", "price": 3500, "duration_days": 30, "description": "Полный спектр HR-инструментов и аналитики.", "is_active": current_subscription and current_subscription.plan_name == "Директор"},
+        ]
+    }
+
+    plans = plans_dict.get(platform.id, [])
+    return {
+        "platform": platform,
+        "plans": plans,
+        "current_subscription": {
+            "plan_name": current_subscription.plan_name,
+            "end_date": current_subscription.end_date
+        } if current_subscription else None
+    }
 
 @router.get("/platforms")
 def get_platforms(db: Session = Depends(get_db)):

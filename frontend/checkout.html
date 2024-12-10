@@ -4,25 +4,20 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Fake Payment Page</title>
-  <style>
-    body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
-    .form-container { width: 300px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
-    input { width: 100%; padding: 10px; margin: 5px 0; }
-    button { width: 100%; padding: 10px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; }
-    .success { color: green; margin-top: 20px; }
-    .error { color: red; margin-top: 20px; }
-  </style>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body>
-  <h2>Fake Payment Provider</h2>
-  <div class="form-container">
-    <h3>Enter Payment Details</h3>
-    <input type="text" id="card-number" placeholder="Card Number" required />
-    <input type="text" id="expiry-date" placeholder="Expiry Date (MM/YY)" required />
-    <input type="text" id="cvv" placeholder="CVV" required />
-    <button onclick="processPayment()">Pay</button>
-    <p id="status" class="success" style="display: none;">Payment successful!</p>
-    <p id="status-error" class="error" style="display: none;">Payment failed!</p>
+<body class="bg-light">
+  <div class="container text-center vh-100 d-flex justify-content-center align-items-center">
+    <div class="card p-5 shadow-sm" style="width: 400px;">
+      <h2>Fake Payment Provider</h2>
+      <p>Enter Payment Details</p>
+      <input type="text" id="card-number" class="form-control mb-3" placeholder="Card Number" required>
+      <input type="text" id="expiry-date" class="form-control mb-3" placeholder="Expiry Date (MM/YY)" required>
+      <input type="text" id="cvv" class="form-control mb-3" placeholder="CVV" required>
+      <button class="btn btn-primary w-100" onclick="processPayment()">Pay</button>
+      <p id="status" class="text-success mt-3 d-none">Payment successful!</p>
+      <p id="status-error" class="text-danger mt-3 d-none">Payment failed!</p>
+    </div>
   </div>
 
   <script>
@@ -31,13 +26,10 @@
       const expiryDate = document.getElementById('expiry-date').value;
       const cvv = document.getElementById('cvv').value;
 
-      // Простейшая имитация проверки данных
       if (cardNumber && expiryDate && cvv) {
-        // Показываем успешное сообщение
-        document.getElementById('status').style.display = 'block';
-        document.getElementById('status-error').style.display = 'none';
+        document.getElementById('status').classList.remove('d-none');
+        document.getElementById('status-error').classList.add('d-none');
 
-        // Перенаправление на фейковую страницу успешной оплаты
         const urlParams = new URLSearchParams(window.location.search);
         const paymentId = urlParams.get('payment_id');
 
@@ -49,9 +41,8 @@
           console.error("Payment ID not found!");
         }
       } else {
-        // Показываем сообщение об ошибке
-        document.getElementById('status-error').style.display = 'block';
-        document.getElementById('status').style.display = 'none';
+        document.getElementById('status-error').classList.remove('d-none');
+        document.getElementById('status').classList.add('d-none');
       }
     }
   </script>
