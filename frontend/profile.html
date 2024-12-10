@@ -32,11 +32,18 @@
       <div id="expired-subscriptions" class="subscriptions-container"></div>
     </div>
 
-    <!-- Доступные планы -->
+<!--    &lt;!&ndash; Доступные планы &ndash;&gt;-->
+<!--    <div class="section">-->
+<!--      <h3>Available Plans</h3>-->
+<!--      <div id="plans-container" class="plans-container"></div>-->
+<!--    </div>-->
+
+    <!-- Доступные SaaS-платформы -->
     <div class="section">
-      <h3>Available Plans</h3>
-      <div id="plans-container" class="plans-container"></div>
+      <h3>Available SaaS Platforms</h3>
+      <div id="platforms-container" class="subscriptions-container"></div>
     </div>
+
   </div>
 
   <script>
@@ -54,12 +61,13 @@
       const container = document.getElementById('active-subscriptions');
       container.innerHTML = '';
 
-      if (response.ok && data.subscriptions) {
+      if (response.ok) {
         data.subscriptions.forEach(sub => {
           const card = document.createElement('div');
           card.className = 'card';
           card.innerHTML = `
             <h3>${sub.plan_name}</h3>
+            <p>Platform: ${sub.platform_name || 'N/A'}</p>
             <p>Start: ${new Date(sub.start_date).toLocaleDateString()}</p>
             <p>End: ${new Date(sub.end_date).toLocaleDateString()}</p>
           `;
@@ -79,12 +87,13 @@
       const container = document.getElementById('expired-subscriptions');
       container.innerHTML = '';
 
-      if (response.ok && data.expired_subscriptions) {
+      if (response.ok) {
         data.expired_subscriptions.forEach(sub => {
           const card = document.createElement('div');
           card.className = 'card expired';
           card.innerHTML = `
             <h3>${sub.plan_name}</h3>
+            <p>Platform: ${sub.platform_name || 'N/A'}</p>
             <p>Start: ${new Date(sub.start_date).toLocaleDateString()}</p>
             <p>End: ${new Date(sub.end_date).toLocaleDateString()}</p>
           `;
@@ -94,7 +103,6 @@
         container.innerHTML = '<p>No expired subscriptions found.</p>';
       }
     }
-
 
     // Получение доступных планов подписки
     async function fetchPlans() {
@@ -116,7 +124,100 @@
       });
     }
 
-    // Подписка на план
+    // Получение списка платформ
+    async function fetchPlatforms() {
+      const response = await fetch('http://localhost:8000/api/subscriptions/platforms', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+      });
+      const data = await response.json();
+      const container = document.getElementById('platforms-container');
+      container.innerHTML = '';
+
+      data.platforms.forEach(platform => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <img src="${platform.image_url}" alt="${platform.name}" style="width:100%; border-radius: 5px;">
+          <h3>${platform.name}</h3>
+          <p>${platform.description}</p>
+          <button onclick="viewPlatformPlans(${platform.id})">View Plans</button>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // Получение планов платформы
+    async function viewPlatformPlans(platformId) {
+      const response = await fetch(`http://localhost:8000/api/subscriptions/platforms/${platformId}`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+      });
+      const data = await response.json();
+      const container = document.getElementById('platforms-container');
+      container.innerHTML = `
+        <h3>${data.platform.name}</h3>
+        <p>${data.platform.description}</p>
+        <div>
+          ${data.plans.map(plan => `
+            <div class="card">
+              <h4>${plan.name}</h4>
+              <p>Price: $${plan.price}</p>
+              <p>Duration: ${plan.duration_days} days</p>
+              <button onclick="subscribeToPlatform(${platformId}, '${plan.name}', ${plan.duration_days})">Subscribe</button>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    // Подписка на платформу
+    async function subscribeToPlatform(platformId, planName, durationDays) {
+      if (!platformId || !planName || !durationDays) {
+        alert('All fields are required!');
+        return;
+      }
+      console.log('Sending subscription data:', { platformId, planName, durationDays });
+
+      try {
+        const response = await fetch(`http://localhost:8000/api/subscriptions/platforms/${platformId}/subscribe`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ plan_name: planName, duration_days: durationDays }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          if (Array.isArray(error.detail)) {
+            const messages = error.detail.map(err => `${err.msg}`).join('\n');
+            alert(`Error: ${messages}`);
+          } else {
+            alert(`Error: ${error.detail || 'Unknown error'}`);
+          }
+          return;
+        }
+
+        const data = await response.json();
+        console.log('Subscription created:', data);
+
+        // Проверяем, есть ли URL для оплаты
+        if (data.payment_url) {
+          alert('Subscription created! Redirecting to payment...');
+          window.location.href = data.payment_url;
+        } else {
+          alert('Subscription created without payment. Please check your active subscriptions.');
+        }
+
+        fetchActiveSubscriptions();
+      } catch (error) {
+        console.error('Error:', error);
+        alert('An unexpected error occurred. Please try again.');
+      }
+    }
+
+
+    // Подписка на обычный план
     async function subscribe(planName, planPrice, durationDays) {
       try {
         const response = await fetch('http://localhost:8000/api/subscriptions/', {
@@ -167,10 +268,11 @@
       }
     }
 
-    // Загружаем данные при загрузке страницы
+    // Инициализация данных
     fetchActiveSubscriptions();
     fetchExpiredSubscriptions();
-    fetchPlans();
+    // fetchPlans();
+    fetchPlatforms();
   </script>
 </body>
 </html>

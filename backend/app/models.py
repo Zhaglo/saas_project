@@ -40,10 +40,12 @@ class Subscription(Base):
     start_date = Column(Date)
     end_date = Column(Date)
     status = Column(String, default="active")
+    platform_id = Column(Integer, ForeignKey("platforms.id"))
 
     # Связь с пользователем и платежами
     user = relationship("User", back_populates="subscriptions")
     payments = relationship("Payment", back_populates="subscription")  # Изменение: payments = relationship
+    platform = relationship("Platform", back_populates="subscriptions")
 
 class SubscriptionCancelRequest(BaseModel):
     subscription_id: int  # Идентификатор подписки, которую нужно отменить
@@ -58,3 +60,17 @@ class SubscriptionResponse(BaseModel):
 
     class Config:
         from_attributes = True  # Это нужно, чтобы Pydantic понимал объекты SQLAlchemy
+
+class Platform(Base):
+    __tablename__ = "platforms"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    description = Column(String, nullable=False)
+    image_url = Column(String, nullable=False)
+
+    subscriptions = relationship("Subscription", back_populates="platform")
+
+class PlatformSubscriptionRequest(BaseModel):
+    plan_name: str
+    duration_days: int

@@ -10,7 +10,8 @@ from datetime import datetime, timedelta
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.dependencies import get_current_user_info
-from app.models import User
+from app.models import User, Platform, PlatformSubscriptionRequest
+from app.routers.payments import PaymentRequest
 
 router = APIRouter()
 
@@ -182,8 +183,19 @@ def get_active_subscriptions(db: Session = Depends(get_db), current_user: dict =
         Subscription.user_id == current_user.id,
         Subscription.status == "active"
     ).all()
-    print(f"Found active subscriptions: {subscriptions}")
-    return {"subscriptions": [sub for sub in subscriptions]}
+
+    result = []
+    for sub in subscriptions:
+        result.append({
+            "id": sub.id,
+            "plan_name": sub.plan_name,
+            "start_date": sub.start_date,
+            "end_date": sub.end_date,
+            "status": sub.status,
+            "platform_name": sub.platform.name if sub.platform else "N/A"  # Извлечение имени платформы
+        })
+    return {"subscriptions": result}
+
 
 
 @router.get("/expired")
@@ -208,6 +220,82 @@ def extend_subscription(subscription_id: int, db: Session = Depends(get_db), cur
     subscription.end_date += timedelta(days=30)
     db.commit()
     return {"message": "Subscription extended successfully", "subscription": subscription}
+
+@router.post("/platforms/{platform_id}/subscribe")
+def subscribe_to_platform(
+    platform_id: int,
+    request: PlatformSubscriptionRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    platform = db.query(Platform).filter(Platform.id == platform_id).first()
+    if not platform:
+        raise HTTPException(status_code=404, detail="Platform not found")
+
+    # Проверяем существующую активную подписку
+    existing_subscription = db.query(Subscription).filter(
+        Subscription.user_id == current_user.id,
+        Subscription.platform_id == platform_id,
+        Subscription.status == "active"
+    ).first()
+    if existing_subscription:
+        raise HTTPException(status_code=400, detail="Active subscription already exists")
+
+    # Создаем новую подписку
+    start_date = datetime.utcnow()
+    end_date = start_date + timedelta(days=request.duration_days)
+    new_subscription = Subscription(
+        user_id=current_user.id,
+        platform_id=platform_id,
+        plan_name=request.plan_name,
+        start_date=start_date,
+        end_date=end_date,
+        status="pending"
+    )
+    db.add(new_subscription)
+    db.commit()
+    db.refresh(new_subscription)
+
+    # Создаем платеж
+    payment_amount = request.duration_days * 10  # Пример расчета суммы
+    payment_request = PaymentRequest(
+        user_id=current_user.id,
+        plan_name=request.plan_name,
+        amount=payment_amount,
+        subscription_id=new_subscription.id
+    )
+
+    try:
+        # Вызов метода create_checkout_session для создания платежа
+        from app.routers.payments import create_checkout_session  # Импортируем метод платежа
+        payment_response = create_checkout_session(payment_request, db)
+
+        return {
+            "message": "Subscription created",
+            "subscription": new_subscription,
+            "payment_url": payment_response["url"]
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to create payment: {str(e)}")
+
+
+@router.get("/platforms/{platform_id}")
+def get_platform_details(platform_id: int, db: Session = Depends(get_db)):
+    platform = db.query(Platform).filter(Platform.id == platform_id).first()
+    if not platform:
+        raise HTTPException(status_code=404, detail="Platform not found")
+    plans = [
+        {"name": "Basic", "price": 10, "duration_days": 30},
+        {"name": "Pro", "price": 20, "duration_days": 60},
+        {"name": "Premium", "price": 30, "duration_days": 90},
+    ]
+    return {"platform": platform, "plans": plans}
+
+@router.get("/platforms")
+def get_platforms(db: Session = Depends(get_db)):
+    platforms = db.query(Platform).all()
+    return {"platforms": platforms}
 
 @router.get("/{user_id}")
 def get_subscriptions(user_id: int, db: Session = Depends(get_db)):

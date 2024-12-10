@@ -26,12 +26,6 @@ class PaymentRecord(BaseModel):
 class ConfirmPaymentRequest(BaseModel):
     payment_id: int
 
-# def find_subscription_id(user_id: int, plan_name: str):
-#     for subscription in subscriptions:
-#         if subscription["user_id"] == user_id and subscription["plan_name"] == plan_name:
-#             return subscription["id"]
-#     return None
-
 # Запрос для получения всех платежей
 @router.get("/")
 def list_all_payments(db: Session = Depends(get_db)):
