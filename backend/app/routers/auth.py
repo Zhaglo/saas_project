@@ -4,11 +4,11 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from app.database import get_db
-from app.models import User
+from app.models import User, Subscription
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from jose import jwt
-from app.dependencies import verify_token
+from app.dependencies import verify_token, get_current_user
 
 from app.routers.subscriptions import oauth2_scheme
 
@@ -100,3 +100,46 @@ def get_current_user_info(db: Session = Depends(get_db), token: str = Depends(oa
 @router.get("/admin-only/")
 def admin_only(token: str = Depends(role_required("admin"))):
     return {"message": "You are an admin!"}
+
+# Эндпоинт для получения подписок пользователя (доступен только администраторам)
+@router.get("/users/{user_id}/subscriptions")
+async def get_user_subscriptions(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    # Проверка роли текущего пользователя
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="You don't have permission to access this resource")
+
+    # Получение подписок пользователя
+    subscriptions = db.query(Subscription).filter(Subscription.user_id == user_id).all()
+
+    if not subscriptions:
+        return {"subscriptions": []}
+
+    # Форматирование ответа
+    return {
+        "subscriptions": [
+            {
+                "id": sub.id,
+                "plan_name": sub.plan_name,
+                "start_date": sub.start_date,
+                "end_date": sub.end_date,
+                "status": sub.status,
+            }
+            for sub in subscriptions
+        ]
+    }
+
+@router.get("/users")
+async def get_users(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    # Проверка роли текущего пользователя
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="You don't have permission to access this resource")
+
+    # Получение списка всех пользователей
+    users = db.query(User).all()
+
+    return {
+        "users": [
+            {"id": user.id, "username": user.username, "email": user.email, "role": user.role}
+            for user in users
+        ]
+    }
