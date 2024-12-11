@@ -4,27 +4,10 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models import Payment, Subscription
+from app.models import Payment, Subscription, PaymentRequest, PaymentRecord, ConfirmPaymentRequest
 import random
 
 router = APIRouter()
-
-class PaymentRequest(BaseModel):
-    user_id: int
-    plan_name: str
-    amount: int  # Сумма в центах
-    subscription_id: int
-
-class PaymentRecord(BaseModel):
-    payment_id: int
-    user_id: int
-    plan_name: str
-    amount: int
-    status: str
-    subscription_id: int  # добавленное поле для подписки
-
-class ConfirmPaymentRequest(BaseModel):
-    payment_id: int
 
 # Запрос для получения всех платежей
 @router.get("/")

@@ -18,6 +18,23 @@ class Payment(Base):
     user = relationship("User", back_populates="payments")
     subscription = relationship("Subscription", back_populates="payments")
 
+class PaymentRequest(BaseModel):
+    user_id: int
+    plan_name: str
+    amount: int  # Сумма в центах
+    subscription_id: int
+
+class PaymentRecord(BaseModel):
+    payment_id: int
+    user_id: int
+    plan_name: str
+    amount: int
+    status: str
+    subscription_id: int  # добавленное поле для подписки
+
+class ConfirmPaymentRequest(BaseModel):
+    payment_id: int
+
 class User(Base):
     __tablename__ = "users"
 
@@ -30,6 +47,18 @@ class User(Base):
     # Связь с платежами и подписками
     payments = relationship("Payment", back_populates="user")
     subscriptions = relationship("Subscription", back_populates="user")
+
+# Модель для данных при регистрации
+class UserCreate(BaseModel):
+    username: str
+    email: str
+    password: str
+    role: str = "user"
+
+# Модель данных для логина
+class UserLogin(BaseModel):
+    email: str
+    password: str
 
 class Subscription(Base):
     __tablename__ = "subscriptions"
@@ -49,6 +78,10 @@ class Subscription(Base):
 
 class SubscriptionCancelRequest(BaseModel):
     subscription_id: int  # Идентификатор подписки, которую нужно отменить
+
+class SubscriptionCreate(BaseModel):
+    plan_name: str
+    duration_days: int
 
 class SubscriptionResponse(BaseModel):
     id: int

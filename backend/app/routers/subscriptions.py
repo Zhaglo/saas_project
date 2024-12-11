@@ -10,17 +10,13 @@ from datetime import datetime, timedelta
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.dependencies import get_current_user_info
-from app.models import User, Platform, PlatformSubscriptionRequest
+from app.models import User, Platform, PlatformSubscriptionRequest, SubscriptionCreate
 from app.routers.payments import PaymentRequest
 
 router = APIRouter()
 
 # Логирование
 logger = logging.getLogger(__name__)
-
-class SubscriptionCreate(BaseModel):
-    plan_name: str
-    duration_days: int
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 

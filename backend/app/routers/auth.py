@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from app.database import get_db
-from app.models import User, Subscription, SubscriptionCancelRequest
+from app.models import User, UserCreate, UserLogin, Subscription, SubscriptionCancelRequest
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from jose import jwt
@@ -21,14 +21,6 @@ SECRET_KEY = "your_secret_key"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-
-# Модель для данных при регистрации
-class UserCreate(BaseModel):
-    username: str
-    email: str
-    password: str
-    role: str = "user"
-
 # Хешируем пароль
 def hash_password(password: str):
     return pwd_context.hash(password)
@@ -41,12 +33,6 @@ def create_access_token(data: dict, expires_delta: timedelta = timedelta(minutes
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-# Модель данных для логина
-class UserLogin(BaseModel):
-    email: str
-    password: str
-
-
 def role_required(role: str):
     def wrapper(fn):
         @wraps(fn)
@@ -58,8 +44,6 @@ def role_required(role: str):
             return await fn(*args, **kwargs)
         return inner
     return wrapper
-
-
 
 # Регистрация пользователя
 @router.post("/register")
@@ -76,8 +60,6 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
     db.refresh(new_user)
 
     return {"message": "User registered successfully", "user": {"username": new_user.username, "role": new_user.role}}
-
-
 
 # Авторизация пользователя и получение токена
 @router.post("/login")
