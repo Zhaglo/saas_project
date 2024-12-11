@@ -8,14 +8,14 @@
 </head>
 <body class="bg-light">
   <div class="container mt-4">
-    <h1>Admin Panel</h1>
+    <h1>Панель администратора</h1>
     <div id="users-section">
-      <h3>Users</h3>
+      <h3>Пользователи</h3>
       <ul id="users-list" class="list-group"></ul>
     </div>
     <div id="subscriptions-section" class="d-none mt-4">
-      <h3>User Subscriptions</h3>
-      <button class="btn btn-secondary mb-3" onclick="showUsers()">← Back to Users</button>
+      <h3>Подписки пользователя</h3>
+      <button class="btn btn-secondary mb-3" onclick="showUsers()">← Вернуться к пользователям</button>
       <ul id="subscriptions-list" class="list-group"></ul>
     </div>
   </div>
@@ -70,7 +70,7 @@
         if (data.subscriptions.length === 0) {
           const noDataItem = document.createElement('li');
           noDataItem.className = 'list-group-item text-muted';
-          noDataItem.textContent = 'No subscriptions found for this user.';
+          noDataItem.textContent = 'Для этого пользователя не найдено ни одной подписки.';
           subscriptionsList.appendChild(noDataItem);
         } else {
           data.subscriptions.forEach((sub) => {
@@ -81,7 +81,7 @@
           if (sub.status === "active") {
             const cancelButton = document.createElement('button');
             cancelButton.className = 'btn btn-danger btn-sm';
-            cancelButton.textContent = 'Cancel';
+            cancelButton.textContent = 'Отменить';
             cancelButton.onclick = () => cancelSubscription(userId, sub.id);
             li.appendChild(cancelButton);
           }
@@ -99,7 +99,7 @@
     }
 
     async function cancelSubscription(userId, subscriptionId) {
-      if (!confirm("Are you sure you want to cancel this subscription?")) {
+      if (!confirm("Вы уверены, что хотите отменить эту подписку?")) {
         return;
       }
 
