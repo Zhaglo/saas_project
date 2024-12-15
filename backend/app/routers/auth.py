@@ -1,15 +1,12 @@
 from functools import wraps
-
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
 from app.database import get_db
 from app.models import User, UserCreate, UserLogin, Subscription, SubscriptionCancelRequest
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from jose import jwt
 from app.dependencies import verify_token, get_current_user
-
 from app.routers.subscriptions import oauth2_scheme
 
 # Инициализация CryptContext для хэширования пароля

@@ -5,12 +5,11 @@ services:
     build:
       context: ./frontend
     ports:
-      - "3000:80"
+      - "80:80"
     depends_on:
       - saas_backend
     networks:
       - saas_network
-
   saas_backend:
     build:
       context: ./backend
@@ -22,7 +21,6 @@ services:
       - saas_db
     networks:
       - saas_network
-
   saas_db:
     image: postgres:13
     environment:
@@ -33,10 +31,8 @@ services:
       - saas_db_data:/var/lib/postgresql/data
     networks:
       - saas_network
-
 volumes:
   saas_db_data:
-
 networks:
   saas_network:
     driver: bridge

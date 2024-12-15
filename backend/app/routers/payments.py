@@ -1,7 +1,5 @@
 from datetime import datetime, timedelta
-
 from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Payment, Subscription, PaymentRequest, PaymentRecord, ConfirmPaymentRequest
@@ -17,31 +15,24 @@ def list_all_payments(db: Session = Depends(get_db)):
         return {"message": "No payments found"}
     return payments
 
-
 @router.post("/create-checkout-session")
 def create_checkout_session(payment: PaymentRequest, db: Session = Depends(get_db)):  # Исправлено
     # Логируем входящие данные
     print(
         f"Received payment request: user_id={payment.user_id}, plan_name={payment.plan_name}, amount={payment.amount}"
     )
-
     # Проверяем корректность суммы
     if payment.amount <= 0:
         raise HTTPException(status_code=400, detail="Invalid payment amount")
-
     # Привязка к подписке
     subscription = db.query(Subscription).filter(
         Subscription.user_id == payment.user_id,
         Subscription.plan_name == payment.plan_name
     ).first()
-
     if not subscription:
         raise HTTPException(status_code=404, detail="Subscription not found")
-
     subscription_id = subscription.id  # Получаем ID подписки
-
     print(f"Found subscription_id: {subscription_id}")
-
     # Генерация платежа
     payment_id = random.randint(100000, 999999)
     new_payment = Payment(
@@ -52,7 +43,6 @@ def create_checkout_session(payment: PaymentRequest, db: Session = Depends(get_d
         status="pending",
         subscription_id=subscription_id  # Используем ID подписки
     )
-
     try:
         db.add(new_payment)
         db.commit()
@@ -63,7 +53,7 @@ def create_checkout_session(payment: PaymentRequest, db: Session = Depends(get_d
         raise HTTPException(status_code=500, detail="Failed to create payment")
 
     # Генерация фейкового URL
-    fake_url = f"http://localhost:3000/checkout.html?payment_id={payment_id}"
+    fake_url = f"http://176.108.250.41:80/checkout.html?payment_id={payment_id}"
     print(f"Payment created successfully. Redirect URL: {fake_url}")
     return {"url": fake_url, "payment_id": payment_id}
 

@@ -1,11 +1,9 @@
 import logging
 from functools import wraps
-
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.models import Subscription, Payment, SubscriptionCancelRequest, SubscriptionResponse
-from pydantic import BaseModel
 from datetime import datetime, timedelta
 from app.database import get_db
 from app.dependencies import get_current_user
@@ -192,7 +190,6 @@ def get_active_subscriptions(db: Session = Depends(get_db), current_user: dict =
         })
     return {"subscriptions": result}
 
-
 @router.get("/expired")
 def get_expired_subscriptions(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     update_subscription_statuses(db)
@@ -291,7 +288,6 @@ def subscribe_to_platform(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to create payment: {str(e)}")
 
-
 @router.get("/platforms/{platform_id}")
 def get_platform_details(platform_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     platform = db.query(Platform).filter(Platform.id == platform_id).first()
@@ -307,27 +303,27 @@ def get_platform_details(platform_id: int, db: Session = Depends(get_db), curren
 
     # Описания планов подписки
     plans_dict = {
-        6: [
+        1: [
             {"name": "Базовый", "price": 1000, "duration_days": 30, "description": "Основные функции управления облачными ресурсами.", "is_active": current_subscription and current_subscription.plan_name == "Базовый"},
             {"name": "Профессиональный", "price": 2000, "duration_days": 30, "description": "Расширенные функции, включая автоматизацию процессов.", "is_active": current_subscription and current_subscription.plan_name == "Профессиональный"},
             {"name": "Премиум", "price": 3000, "duration_days": 30, "description": "Все функции, приоритетная поддержка и аналитические отчеты.", "is_active": current_subscription and current_subscription.plan_name == "Премиум"},
         ],
-        7: [
+        2: [
             {"name": "Стартовый", "price": 1500, "duration_days": 30, "description": "Базовые инструменты управления продажами.", "is_active": current_subscription and current_subscription.plan_name == "Стартовый"},
             {"name": "Продвинутый", "price": 2500, "duration_days": 30, "description": "Дополнительные функции аналитики и интеграции.", "is_active": current_subscription and current_subscription.plan_name == "Продвинутый"},
             {"name": "Экспертный", "price": 4000, "duration_days": 30, "description": "Полный набор инструментов и персональная поддержка.", "is_active": current_subscription and current_subscription.plan_name == "Экспертный"},
         ],
-        8: [
+        3: [
             {"name": "Аналитик", "price": 2000, "duration_days": 30, "description": "Доступ к основным аналитическим данным.", "is_active": current_subscription and current_subscription.plan_name == "Аналитик"},
             {"name": "Стратег", "price": 3500, "duration_days": 30, "description": "Расширенные данные и прогнозы.", "is_active": current_subscription and current_subscription.plan_name == "Стратег"},
             {"name": "Гуру", "price": 5000, "duration_days": 30, "description": "Полный доступ ко всем данным и индивидуальные отчеты.", "is_active": current_subscription and current_subscription.plan_name == "Гуру"},
         ],
-        9: [
+        4: [
             {"name": "Команда", "price": 1200, "duration_days": 30, "description": "Основные функции управления проектами для небольших команд.", "is_active": current_subscription and current_subscription.plan_name == "Команда"},
             {"name": "Бизнес", "price": 2500, "duration_days": 30, "description": "Расширенные функции для средних компаний.", "is_active": current_subscription and current_subscription.plan_name == "Бизнес"},
             {"name": "Корпоративный", "price": 4000, "duration_days": 30, "description": "Полный функционал для крупных организаций.", "is_active": current_subscription and current_subscription.plan_name == "Корпоративный"},
         ],
-        10: [
+        5: [
             {"name": "Рекрутер", "price": 1000, "duration_days": 30, "description": "Инструменты для найма и отслеживания кандидатов.", "is_active": current_subscription and current_subscription.plan_name == "Рекрутер"},
             {"name": "Менеджер", "price": 2000, "duration_days": 30, "description": "Дополнительные функции адаптации и обучения.", "is_active": current_subscription and current_subscription.plan_name == "Менеджер"},
             {"name": "Директор", "price": 3500, "duration_days": 30, "description": "Полный спектр HR-инструментов и аналитики.", "is_active": current_subscription and current_subscription.plan_name == "Директор"},

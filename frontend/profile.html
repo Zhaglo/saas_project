@@ -154,7 +154,7 @@
     // Fetch and display SaaS platforms
     async function fetchPlatforms() {
       showLoading();
-      const response = await fetch('http://localhost:8000/api/subscriptions/platforms', {
+      const response = await fetch('http://176.108.250.41:8000/api/subscriptions/platforms', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       hideLoading();
@@ -182,7 +182,7 @@
     // Show platform details
     async function viewPlatformDetails(platformId) {
       showLoading();
-      const response = await fetch(`http://localhost:8000/api/subscriptions/platforms/${platformId}`, {
+      const response = await fetch(`http://176.108.250.41:8000/api/subscriptions/platforms/${platformId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       hideLoading();
@@ -234,9 +234,8 @@
         return;
       }
       console.log('Отправка данных подписки:', { platformId, planName, durationDays });
-
       try {
-        const response = await fetch(`http://localhost:8000/api/subscriptions/platforms/${platformId}/subscribe`, {
+        const response = await fetch(`http://176.108.250.41:8000/api/subscriptions/platforms/${platformId}/subscribe`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -244,7 +243,6 @@
           },
           body: JSON.stringify({ plan_name: planName, duration_days: durationDays }),
         });
-
         if (!response.ok) {
           const error = await response.json();
           const messages = Array.isArray(error.detail)
@@ -253,16 +251,13 @@
           alert(`Ошибка: ${messages}`);
           return;
         }
-
         const data = await response.json();
         console.log('Подписка успешно создана:', data);
-
         if (data.payment_url) {
           window.location.href = data.payment_url;
         } else {
           alert('Подписка успешно создана без оплаты. Проверьте свои активные подписки.');
         }
-
         fetchActiveSubscriptions();
       } catch (error) {
         console.error('Ошибка подписки:', error);
@@ -271,7 +266,7 @@
     }
 
     async function fetchActiveSubscriptions() {
-      const response = await fetch('http://localhost:8000/api/subscriptions/active', {
+      const response = await fetch('http://176.108.250.41:8000/api/subscriptions/active', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const container = document.getElementById('active-subscriptions');
@@ -303,7 +298,7 @@
     }
 
     async function fetchExpiredSubscriptions() {
-      const response = await fetch('http://localhost:8000/api/subscriptions/expired', {
+      const response = await fetch('http://176.108.250.41:8000/api/subscriptions/expired', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const container = document.getElementById('expired-subscriptions');
